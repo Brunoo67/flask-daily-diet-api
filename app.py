@@ -98,6 +98,23 @@ def edit_password(user_id):
     
     return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
+
+
+@app.route('/user-delete/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    username = user.username
+    if not user:
+        return jsonify({'message': f'Usuário não encontrado'}), 404
+    
+    if current_user.role == 'admin' or user_id == current_user.id:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message' : f'Usuário {user_id} | {username} deletado com sucesso!'})
+    
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
 ##### ROTAS DE REFEIÇÃO
 
 @app.route('/meal', methods=['POST'])
