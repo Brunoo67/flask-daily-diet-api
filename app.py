@@ -79,6 +79,25 @@ def edit_username(user_id):
     
     return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
+
+
+@app.route('/edit-password/<int:user_id>', methods=['PUT'])
+@login_required
+def edit_password(user_id):
+    user = User.query.get(user_id)
+    data = request.json
+
+    if not user:
+        return jsonify({'message': f'Usuário não encontrado'}), 404
+    
+    if (data.get('password') and current_user.role == 'admin') or (data.get('password') and user_id == current_user.id):
+        hashed_password = bcrypt.hashpw(str.encode(data.get('password')), bcrypt.gensalt())
+        user.password = hashed_password
+        db.session.commit()
+        return jsonify({'message' : 'Senha alterada com sucesso!'})
+    
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
 ##### ROTAS DE REFEIÇÃO
 
 @app.route('/meal', methods=['POST'])
