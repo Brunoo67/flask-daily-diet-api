@@ -57,21 +57,107 @@ def create_user():
 
 
 @app.route('/meal', methods=['POST'])
+@login_required
 def create_meal():
     data = request.json
     name = data.get('name')
     description = data.get('description')
     #date_time_str = data.get('date_time')
-    on_diet = data.get('on_diet', False)
+    on_diet = data.get('on_diet')
 
-    if name and on_diet:
+    if name:
         meal = Meal(name=name, description=description, on_diet=on_diet, user_id=current_user.id)
         db.session.add(meal)
         db.session.commit()
         return jsonify({'message' : "Refeição criada com sucesso!"})
     return jsonify({'message': 'dados inválidos'}), 400
 
+
+
+@app.route('/read-meal/<int:id_meal>', methods=['GET'])
+@login_required
+def read_meal(id_meal):
+    meal = Meal.query.get(id_meal)
+
+    if meal:
+        return jsonify({'message' : f'ID: {meal.id} | Nome: {meal.name} | Descrição: {meal.description} | Na dieta: {meal.on_diet}'})
+    
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
+    
+
+
+
+@app.route('/edit-meal-name/<int:id_meal>', methods=['PUT'])
+@login_required
+def edit_meal_name(id_meal):
+    meal = Meal.query.get(id_meal)
+    data = request.json
+    old_name = meal.name
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
+    
+    if (data.get('name') and current_user.role == 'admin') or (data.get('name') and meal.user_id == current_user.id):
+
+        meal.name = data.get('name')
+        db.session.commit()
+        return jsonify({'message' : f'Refeição {id_meal} | {old_name} foi atualizado para {meal.name}'})
+    
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
+@app.route('/edit-meal-description/<int:id_meal>', methods=['PUT'])
+@login_required
+def edit_meal_description(id_meal):
+    meal = Meal.query.get(id_meal)
+    data = request.json
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
+    
+    if (data.get('description') and current_user.role == 'admin') or (data.get('description') and meal.user_id == current_user.id):
+
+        meal.description = data.get('description')
+        db.session.commit()
+        return jsonify({'message' : f'Refeição {id_meal} | {meal.name} deve a descrição atualiazada para: {meal.description}'})
+    
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
+@app.route('/edit-meal-on_diet/<int:id_meal>', methods=['PUT'])
+@login_required
+def edit_meal_on_diet(id_meal):
+    meal = Meal.query.get(id_meal)
+    data = request.json
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
+    
+    if data.get('on_diet') not in [True, False]:
+        return jsonify({'message': 'O campo "on_diet" deve ser um valor booleano (true ou false)'}), 400
+
+
+    if current_user.role == 'admin' or meal.user_id == current_user.id:
+
+        meal.on_diet = data.get('on_diet')
+        db.session.commit()
+        return jsonify({'message' : f'Refeição {id_meal} | {meal.name} está na dieta: {meal.on_diet}'})
+    
+    return jsonify({'message' : f'Você não tem permissão para isso. {current_user.role} {data.get('on_diet')}'}), 403
+
+
+@app.route('/delete-meal/<int:id_meal>', methods=['DELETE'])
+@login_required
+def delete_meal(id_meal):
+    meal = Meal.query.get(id_meal)
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada.'}), 404
+
+    if current_user.role == 'admin' or meal.user_id == current_user.id:
+        db.session.delete(meal)
+        db.session.commit()
+        return jsonify({'message': f'Refeição {meal.id} | {meal.name} deletada com sucesso!'}), 200
+    
+    
+    return jsonify({'message': 'Você não tem permissão para isso.'}), 403
+
+
 if __name__ == ('__main__'):
     app.run(debug=True)
-
     
