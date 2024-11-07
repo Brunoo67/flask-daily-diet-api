@@ -79,13 +79,13 @@ def create_meal():
 def read_meal(id_meal):
     meal = Meal.query.get(id_meal)
 
-    if meal:
+    if (meal and current_user.role == 'admin') or (meal and meal.user_id == current_user.id):
         return jsonify({'message' : f'ID: {meal.id} | Nome: {meal.name} | Descrição: {meal.description} | Na dieta: {meal.on_diet}'})
     
     if not meal:
         return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
     
-
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
 
 @app.route('/edit-meal-name/<int:id_meal>', methods=['PUT'])
