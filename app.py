@@ -87,6 +87,36 @@ def read_meal(id_meal):
     
     return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
+@app.route('/read-all-meals/<int:user_id>', methods=['GET'])
+@login_required
+def read_all_meals_by_user(user_id):
+
+    if current_user.role == 'admin' or current_user.id == user_id:
+        meals = Meal.query.filter_by(user_id=user_id).all()
+        user = User.query.get(user_id)
+
+        if meals:
+            meal_information= [
+
+                {
+                    "ID" : meal.id,
+                    "Nome" : meal.name,
+                    "Descrição" : meal.description,
+                    "On diet" : meal.on_diet
+                }
+                for meal in meals
+            ]
+
+            count = len(meals)
+            return jsonify({
+                            f'Número de refeições cadastradas pelo usuário {user_id} | {user.username}:' : count,
+                            'Refeições: ' : meal_information})
+        
+        
+        return jsonify({'message': f'Nenhuma refeição encontrada para o usuário de id {user_id}'}), 404
+    
+    return jsonify({'message': 'Você não tem permissão para isso.'}), 403
+
 
 @app.route('/edit-meal-name/<int:id_meal>', methods=['PUT'])
 @login_required
