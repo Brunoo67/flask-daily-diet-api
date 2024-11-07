@@ -4,6 +4,8 @@ from database import db
 from models.user import User
 from models.meals import Meal
 import bcrypt
+from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -123,11 +125,11 @@ def create_meal():
     data = request.json
     name = data.get('name')
     description = data.get('description')
-    #date_time_str = data.get('date_time')
     on_diet = data.get('on_diet')
-
+    created_at = datetime.strptime(data.get('created_at'), "%Y-%m-%d %H:%M:%S")
+    
     if name:
-        meal = Meal(name=name, description=description, on_diet=on_diet, user_id=current_user.id)
+        meal = Meal(name=name, description=description, on_diet=on_diet, user_id=current_user.id, created_at=created_at)
         db.session.add(meal)
         db.session.commit()
         return jsonify({'message' : "Refeição criada com sucesso!"})
@@ -141,7 +143,7 @@ def read_meal(id_meal):
     meal = Meal.query.get(id_meal)
 
     if (meal and current_user.role == 'admin') or (meal and meal.user_id == current_user.id):
-        return jsonify({'message' : f'ID: {meal.id} | Nome: {meal.name} | Descrição: {meal.description} | Na dieta: {meal.on_diet}'})
+        return jsonify({'message' : f'ID: {meal.id} | Nome: {meal.name} | Descrição: {meal.description} | Na dieta: {meal.on_diet} | Criado em: {meal.created_at}'})
     
     if not meal:
         return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
@@ -165,7 +167,8 @@ def read_all_meals_by_user(user_id):
                     "ID" : meal.id,
                     "Nome" : meal.name,
                     "Descrição" : meal.description,
-                    "On diet" : meal.on_diet
+                    "On diet" : meal.on_diet,
+                    "Criado em" : meal.created_at
                 }
                 for meal in meals
             ]
@@ -233,7 +236,31 @@ def edit_meal_on_diet(id_meal):
         db.session.commit()
         return jsonify({'message' : f'Refeição {id_meal} | {meal.name} está na dieta: {meal.on_diet}'})
     
-    return jsonify({'message' : f'Você não tem permissão para isso. {current_user.role} {data.get('on_diet')}'}), 403
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
+
+
+@app.route('/edit-meal-date/<int:id_meal>', methods=['PUT'])
+@login_required
+def edit_meal_date(id_meal):
+    meal = Meal.query.get(id_meal)
+    data = request.json
+    print(data)
+    if not meal:
+        return jsonify({'message': f'Refeição de id {id_meal} não encontrada'}), 404
+    
+    if not data.get('created_at'):
+        return jsonify({'message': 'Campo "created_at" não encontrado.'}), 400
+    
+    if not re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", data.get('created_at')):
+        return jsonify({'message': 'Formato de data inválido. Use o formato: YYYY-MM-DD HH:MM:SS'}), 400
+    
+    if current_user.role == 'admin' or meal.user_id == current_user.id:
+        meal.created_at =  datetime.strptime(data.get('created_at'), "%Y-%m-%d %H:%M:%S")
+        db.session.commit()
+        return jsonify({'message' : f'Data atualizado para {meal.created_at}'})
+
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
 
 @app.route('/delete-meal/<int:id_meal>', methods=['DELETE'])
