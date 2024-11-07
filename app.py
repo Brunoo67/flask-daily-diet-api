@@ -18,6 +18,7 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(user_id)
 
+#ROTA DE USUÁRIOS
 
 @app.route('/login', methods=["POST"])
 def login():
@@ -40,6 +41,7 @@ def logout():
     return jsonify({'message' : 'Logout feito com sucesso!'})
 
 
+
 @app.route('/user', methods=['POST'])
 def create_user():
     data = request.json
@@ -55,6 +57,29 @@ def create_user():
     
     return jsonify({'message' : "Dados incorretos"}), 400
 
+
+
+@app.route('/edit-username/<int:user_id>', methods=['PUT'])
+@login_required
+def edit_username(user_id):
+    user = User.query.get(user_id)
+    data = request.json
+    old_username = user.username
+
+    if not user:
+        return jsonify({'message': f'Usuário não encontrado'}), 404
+
+    if User.query.filter_by(username=data.get('username')).first():
+        return jsonify({'message': 'Nome de usuário já existe. Escolha outro.'}), 400
+
+    if (data.get('username') and current_user.role == 'admin') or (data.get('username') and user_id == current_user.id):
+        user.username = data.get('username')
+        db.session.commit()
+        return jsonify({'message' : f'Nome antigo: {old_username} | Nome atualizado: {user.username}'})
+    
+    return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
+
+##### ROTAS DE REFEIÇÃO
 
 @app.route('/meal', methods=['POST'])
 @login_required
@@ -87,6 +112,8 @@ def read_meal(id_meal):
     
     return jsonify({'message' : 'Você não tem permissão para isso.'}), 403
 
+
+
 @app.route('/read-all-meals/<int:user_id>', methods=['GET'])
 @login_required
 def read_all_meals_by_user(user_id):
@@ -116,6 +143,7 @@ def read_all_meals_by_user(user_id):
         return jsonify({'message': f'Nenhuma refeição encontrada para o usuário de id {user_id}'}), 404
     
     return jsonify({'message': 'Você não tem permissão para isso.'}), 403
+
 
 
 @app.route('/edit-meal-name/<int:id_meal>', methods=['PUT'])
