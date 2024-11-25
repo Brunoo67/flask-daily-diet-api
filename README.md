@@ -5,5 +5,5 @@
 - Flask + PYTHON (Para Desenvolvimento);
 - PyMysql (Para fazer conexão com Banco de Dados);
 - Bcript (Criptografação de senhas);
-- DOCKER (Criação de COntainers);
+- DOCKER (Criação de Containers);
 - Extensão MySQL(Ver Tabelas, CRUD e testes de Desenvolvimento);
